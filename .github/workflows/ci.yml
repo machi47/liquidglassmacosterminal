@@ -1,0 +1,76 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  macos:
+    runs-on: macos-26
+    timeout-minutes: 25
+    steps:
+      - name: Quiet checkout
+        shell: bash
+        run: |
+          git init -q
+          git remote add origin "https://github.com/${GITHUB_REPOSITORY}.git"
+          git -c advice.detachedHead=false fetch -q --depth=1 origin "${GITHUB_SHA}"
+          git checkout -q --detach FETCH_HEAD
+
+      - name: Toolchain
+        run: |
+          sw_vers -productVersion
+          xcodebuild -version
+          swift --version
+
+      - name: Validate shell and plists
+        run: |
+          bash -n install.sh uninstall.sh Scripts/*.sh
+          plutil -lint Resources/*.plist.template
+
+      - name: Run Swift tests
+        shell: bash
+        run: |
+          set +e
+          swift test > /tmp/liquidglass-swift-test.log 2>&1
+          status=$?
+          if [[ $status -ne 0 ]]; then
+            echo '--- filtered Swift diagnostics ---'
+            grep -nE '(^|[^A-Za-z])(error:|fatal error:|failed|FAIL|Test Case.*failed)' /tmp/liquidglass-swift-test.log | tail -n 240 || true
+            echo '--- final 80 log lines ---'
+            tail -n 80 /tmp/liquidglass-swift-test.log
+            exit $status
+          fi
+          tail -n 40 /tmp/liquidglass-swift-test.log
+
+      - name: Build CLI release
+        run: swift build -c release --product liquidglass
+
+      - name: Build agent release
+        run: swift build -c release --product LiquidGlassAgent
+
+      - name: Compile and link Metal shader
+        run: |
+          xcrun -sdk macosx metal -c Sources/LiquidGlassAgent/Resources/LiquidGlass.metal -o /tmp/LiquidGlass.air
+          xcrun -sdk macosx metallib /tmp/LiquidGlass.air -o /tmp/LiquidGlass.metallib
+          test -s /tmp/LiquidGlass.metallib
+          rm -f /tmp/LiquidGlass.air /tmp/LiquidGlass.metallib
+
+      - name: Build and validate signed app bundles
+        run: |
+          ./Scripts/build-app-bundles.sh /tmp/liquidglass-apps
+          test -x /tmp/liquidglass-apps/LiquidGlass.app/Contents/MacOS/LiquidGlassAgent
+          test -s /tmp/liquidglass-apps/LiquidGlass.app/Contents/Resources/LiquidGlass.metal
+          test -x /tmp/liquidglass-apps/LiquidGlassCLI.app/Contents/MacOS/liquidglass
+          codesign --verify --deep --strict /tmp/liquidglass-apps/LiquidGlass.app
+          codesign --verify --deep --strict /tmp/liquidglass-apps/LiquidGlassCLI.app
+
+      - name: Reject bootstrap and generated residue
+        run: |
+          test ! -d .bootstrap
+          ! find . -path './.git' -prune -o -type f -name 'part-*' -print -quit | grep -q .
+          ! find . -path './.git' -prune -o -type f \( -name '*.air' -o -name '*.metallib' \) -print -quit | grep -q .
