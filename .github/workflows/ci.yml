@@ -13,11 +13,17 @@ jobs:
     runs-on: macos-26
     timeout-minutes: 25
     steps:
-      - uses: actions/checkout@v4
+      - name: Quiet checkout
+        shell: bash
+        run: |
+          git init -q
+          git remote add origin "https://github.com/${GITHUB_REPOSITORY}.git"
+          git -c advice.detachedHead=false fetch -q --depth=1 origin "${GITHUB_SHA}"
+          git checkout -q --detach FETCH_HEAD
 
       - name: Toolchain
         run: |
-          sw_vers
+          sw_vers -productVersion
           xcodebuild -version
           swift --version
 
