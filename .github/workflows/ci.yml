@@ -1,0 +1,27 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  macos:
+    runs-on: macos-26
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - name: Toolchain
+        run: |
+          sw_vers
+          xcodebuild -version
+          swift --version
+      - name: Validate repository
+        run: ./Scripts/validate.sh
+      - name: Reject bootstrap residue
+        run: |
+          test ! -d .bootstrap
+          ! find . -path './.git' -prune -o -type f -name 'part-*' -print -quit | grep -q .
