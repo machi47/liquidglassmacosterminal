@@ -1,0 +1,45 @@
+name: Bootstrap source tree
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    paths:
+      - ".bootstrap/**"
+      - ".github/workflows/bootstrap.yml"
+
+permissions:
+  contents: write
+  pull-requests: read
+
+jobs:
+  unpack:
+    name: Expand verified source tree
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out pull-request branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+          fetch-depth: 0
+
+      - name: Verify, expand, and commit source
+        shell: bash
+        env:
+          HEAD_REF: ${{ github.event.pull_request.head.ref }}
+        run: |
+          set -euo pipefail
+
+          cat .bootstrap/source.part* | base64 --decode > /tmp/liquidglass-source.tar.gz
+          printf '%s  %s\n' \
+            '48890b0db151fc8c5127d04cd0d1a9179960257cae88515a34506176a1e1d6db' \
+            '/tmp/liquidglass-source.tar.gz' | sha256sum --check
+
+          tar -xzf /tmp/liquidglass-source.tar.gz
+          rm -rf .bootstrap .github/workflows/bootstrap.yml
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "feat: implement high-performance Metal liquid-glass compositor"
+          git push origin "HEAD:${HEAD_REF}"
