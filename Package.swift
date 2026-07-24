@@ -30,9 +30,7 @@ let package = Package(
         .executableTarget(
             name: "LiquidGlassAgent",
             dependencies: ["LiquidGlassCore"],
-            resources: [
-                .process("Resources")
-            ],
+            exclude: ["Resources"],
             linkerSettings: [
                 .linkedFramework("AppKit", .when(platforms: [.macOS])),
                 .linkedFramework("CoreGraphics", .when(platforms: [.macOS])),

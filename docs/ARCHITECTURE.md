@@ -57,3 +57,7 @@ The installer creates two ad-hoc signed app bundles:
 - `com.machi47.LiquidGlassCLI` for Terminal Automation
 
 Stable bundle identities prevent every source rebuild from appearing as a completely unrelated executable to TCC, although ad-hoc signing is still intended for local installation rather than public notarized distribution.
+
+## Application packaging
+
+The Metal source is deliberately packaged by `Scripts/build-app-bundles.sh` as `LiquidGlass.app/Contents/Resources/LiquidGlass.metal` rather than relying on SwiftPM's development-time resource-bundle location. `ShaderSourceLocator` resolves that installed path and exposes a non-UI `--validate-resources` probe, which CI executes from inside the signed app bundle before installation is considered valid.

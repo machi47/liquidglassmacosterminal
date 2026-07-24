@@ -60,6 +60,15 @@ jobs:
           test -s /tmp/LiquidGlass.metallib
           rm -f /tmp/LiquidGlass.air /tmp/LiquidGlass.metallib
 
+      - name: Build and validate signed app bundles
+        run: |
+          ./Scripts/build-app-bundles.sh /tmp/liquidglass-apps
+          test -x /tmp/liquidglass-apps/LiquidGlass.app/Contents/MacOS/LiquidGlassAgent
+          test -s /tmp/liquidglass-apps/LiquidGlass.app/Contents/Resources/LiquidGlass.metal
+          test -x /tmp/liquidglass-apps/LiquidGlassCLI.app/Contents/MacOS/liquidglass
+          codesign --verify --deep --strict /tmp/liquidglass-apps/LiquidGlass.app
+          codesign --verify --deep --strict /tmp/liquidglass-apps/LiquidGlassCLI.app
+
       - name: Reject bootstrap and generated residue
         run: |
           test ! -d .bootstrap

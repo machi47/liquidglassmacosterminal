@@ -18,15 +18,10 @@ final class MetalContext {
             throw LiquidGlassError.agent("Unable to create a Metal command queue.")
         }
 
-        guard let shaderURL = Bundle.module.url(
-            forResource: "LiquidGlass",
-            withExtension: "metal"
-        ) else {
-            throw LiquidGlassError.agent("The bundled LiquidGlass.metal shader is missing.")
-        }
+        let shaderURL = try ShaderSourceLocator.locate()
         let source = try String(contentsOf: shaderURL, encoding: .utf8)
         let options = MTLCompileOptions()
-        options.fastMathEnabled = true
+        options.mathMode = .fast
         let library = try device.makeLibrary(source: source, options: options)
 
         guard let vertex = library.makeFunction(name: "liquidGlassVertex"),
