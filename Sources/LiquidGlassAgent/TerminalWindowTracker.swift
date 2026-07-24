@@ -68,8 +68,8 @@ final class TerminalWindowTracker {
                   let windowNumber = item[kCGWindowNumber as String] as? NSNumber,
                   let layerNumber = item[kCGWindowLayer as String] as? NSNumber,
                   layerNumber.intValue == 0,
-                  let boundsDictionary = item[kCGWindowBounds as String] as? CFDictionary,
-                  let quartzFrame = CGRect(dictionaryRepresentation: boundsDictionary),
+                  let boundsObject = item[kCGWindowBounds as String] as? NSDictionary,
+                  let quartzFrame = CGRect(dictionaryRepresentation: boundsObject),
                   quartzFrame.width >= 120,
                   quartzFrame.height >= 80 else {
                 continue
