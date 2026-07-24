@@ -14,14 +14,36 @@ jobs:
     timeout-minutes: 25
     steps:
       - uses: actions/checkout@v4
+
       - name: Toolchain
         run: |
           sw_vers
           xcodebuild -version
           swift --version
-      - name: Validate repository
-        run: ./Scripts/validate.sh
-      - name: Reject bootstrap residue
+
+      - name: Validate shell and plists
+        run: |
+          bash -n install.sh uninstall.sh Scripts/*.sh
+          plutil -lint Resources/*.plist.template
+
+      - name: Run Swift tests
+        run: swift test
+
+      - name: Build CLI release
+        run: swift build -c release --product liquidglass
+
+      - name: Build agent release
+        run: swift build -c release --product LiquidGlassAgent
+
+      - name: Compile and link Metal shader
+        run: |
+          xcrun -sdk macosx metal -c Sources/LiquidGlassAgent/Resources/LiquidGlass.metal -o /tmp/LiquidGlass.air
+          xcrun -sdk macosx metallib /tmp/LiquidGlass.air -o /tmp/LiquidGlass.metallib
+          test -s /tmp/LiquidGlass.metallib
+          rm -f /tmp/LiquidGlass.air /tmp/LiquidGlass.metallib
+
+      - name: Reject bootstrap and generated residue
         run: |
           test ! -d .bootstrap
           ! find . -path './.git' -prune -o -type f -name 'part-*' -print -quit | grep -q .
+          ! find . -path './.git' -prune -o -type f \( -name '*.air' -o -name '*.metallib' \) -print -quit | grep -q .
