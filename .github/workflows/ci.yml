@@ -27,7 +27,19 @@ jobs:
           plutil -lint Resources/*.plist.template
 
       - name: Run Swift tests
-        run: swift test
+        shell: bash
+        run: |
+          set +e
+          swift test > /tmp/liquidglass-swift-test.log 2>&1
+          status=$?
+          if [[ $status -ne 0 ]]; then
+            echo '--- filtered Swift diagnostics ---'
+            grep -nE '(^|[^A-Za-z])(error:|fatal error:|failed|FAIL|Test Case.*failed)' /tmp/liquidglass-swift-test.log | tail -n 240 || true
+            echo '--- final 80 log lines ---'
+            tail -n 80 /tmp/liquidglass-swift-test.log
+            exit $status
+          fi
+          tail -n 40 /tmp/liquidglass-swift-test.log
 
       - name: Build CLI release
         run: swift build -c release --product liquidglass
