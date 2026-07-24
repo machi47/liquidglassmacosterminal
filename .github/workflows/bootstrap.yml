@@ -34,3 +34,5 @@ jobs:
           git add -A
           git diff --cached --quiet || git commit -m "feat: implement Metal liquid-glass compositor for Terminal.app"
           git push origin HEAD:main
+
+# Bootstrap source material uploaded by ChatGPT.
