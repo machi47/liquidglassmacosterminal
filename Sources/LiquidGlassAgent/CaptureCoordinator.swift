@@ -135,8 +135,7 @@ final class CaptureCoordinator {
             Bundle.main.bundleIdentifier
         ].compactMap { $0 }.reduce(into: Set<String>()) { $0.insert($1) }
         let excludedApplications = content.applications.filter { application in
-            guard let bundleIdentifier = application.bundleIdentifier else { return false }
-            return excludedBundleIDs.contains(bundleIdentifier)
+            excludedBundleIDs.contains(application.bundleIdentifier)
         }
 
         let displaysByID = Dictionary(uniqueKeysWithValues: content.displays.map { ($0.displayID, $0) })
